@@ -5,6 +5,7 @@ import { Sidebar } from '@/components/layout/Sidebar'
 import { FormularioLancamento } from '@/components/forms/FormularioLancamento'
 import { Historico } from '@/components/history/Historico'
 import { ModalPreview } from '@/components/preview/ModalPreview'
+import { StatusBar } from '@/components/ui/StatusBar'
 import { gerarPlanilha } from '@/lib/gerarPlanilha'
 import type { Medicao } from '@/types'
 
@@ -13,7 +14,13 @@ function gerarId() {
 }
 
 export default function App() {
-  const { operador, salvarOperador, abaAtiva, setAbaAtiva, historico, salvarMedicao, excluirMedicao } = useAppStore()
+  const {
+    operador, salvarOperador,
+    abaAtiva, setAbaAtiva,
+    historico, statusSync, modoOffline,
+    salvarMedicao, excluirMedicao, recarregarHistorico,
+  } = useAppStore()
+
   const [medicaoPreview, setMedicaoPreview] = useState<Medicao | null>(null)
   const [emitindo, setEmitindo] = useState(false)
 
@@ -25,17 +32,13 @@ export default function App() {
     if (!medicaoPreview) return
     setEmitindo(true)
     try {
-      salvarMedicao(medicaoPreview)
+      await salvarMedicao(medicaoPreview)
       await gerarPlanilha(medicaoPreview)
       setMedicaoPreview(null)
     } finally {
       setEmitindo(false)
     }
   }, [medicaoPreview, salvarMedicao])
-
-  const handleVisualizarHistorico = useCallback((m: Medicao) => {
-    setMedicaoPreview(m)
-  }, [])
 
   if (!operador) {
     return <TelaLogin onEntrar={salvarOperador} />
@@ -45,19 +48,24 @@ export default function App() {
     <div className="flex min-h-screen bg-surface-900">
       <Sidebar abaAtiva={abaAtiva} operador={operador} onNavegar={setAbaAtiva} />
 
-      <main className="flex-1 overflow-y-auto p-6 lg:p-8">
-        {abaAtiva === 'lancamento' && (
-          <FormularioLancamento operador={operador} onPreview={handlePreview} />
-        )}
-        {abaAtiva === 'historico' && (
-          <Historico
-            historico={historico}
-            onVisualizar={handleVisualizarHistorico}
-            onEditar={handleVisualizarHistorico}
-            onExcluir={excluirMedicao}
-          />
-        )}
-      </main>
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <StatusBar statusSync={statusSync} modoOffline={modoOffline} />
+
+        <main className="flex-1 overflow-y-auto p-6 lg:p-8">
+          {abaAtiva === 'lancamento' && (
+            <FormularioLancamento operador={operador} onPreview={handlePreview} />
+          )}
+          {abaAtiva === 'historico' && (
+            <Historico
+              historico={historico}
+              carregando={statusSync === 'carregando'}
+              onVisualizar={m => setMedicaoPreview(m)}
+              onExcluir={excluirMedicao}
+              onRecarregar={recarregarHistorico}
+            />
+          )}
+        </main>
+      </div>
 
       {medicaoPreview && (
         <ModalPreview
