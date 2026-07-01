@@ -1,241 +1,212 @@
 import { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Fuel, Eye, EyeOff, ShieldCheck, ArrowRight, Loader2, Zap } from 'lucide-react'
+import { Eye, EyeOff, ArrowRight, Loader2 } from 'lucide-react'
 import { useAuth, DEV_TRIGGER_NAME, DEV_PASSWORD } from '@/context/AuthContext'
 
-type Fase = 'nome' | 'senha_dev' | 'carregando'
+type Fase = 'nome' | 'senha_dev' | 'entrando'
 
 export function LandingPage() {
-  const { entrar } = useAuth()
+  const { entrar }  = useAuth()
   const [fase, setFase]           = useState<Fase>('nome')
   const [nome, setNome]           = useState('')
   const [senha, setSenha]         = useState('')
+  const [senhaVisivel, setSenhaVisivel] = useState(false)
   const [erroSenha, setErroSenha] = useState(false)
-  const [mostrarSenha, setMostrarSenha] = useState(false)
   const senhaRef = useRef<HTMLInputElement>(null)
 
-  // Foca automaticamente no campo de senha ao aparecer
   useEffect(() => {
     if (fase === 'senha_dev') {
-      setTimeout(() => senhaRef.current?.focus(), 400)
+      const t = setTimeout(() => senhaRef.current?.focus(), 350)
+      return () => clearTimeout(t)
     }
   }, [fase])
 
-  function handleNomeSubmit(e: React.FormEvent) {
+  function handleNome(e: React.FormEvent) {
     e.preventDefault()
-    const normalizado = nome.trim().toLowerCase().replace(/\s/g, '')
-    if (normalizado === DEV_TRIGGER_NAME) {
+    const n = nome.trim()
+    if (n.length < 2) return
+    if (n.toLowerCase().replace(/\s/g, '') === DEV_TRIGGER_NAME) {
       setFase('senha_dev')
-    } else if (nome.trim().length >= 2) {
-      setFase('carregando')
-      setTimeout(() => entrar(nome.trim(), 'OPERADOR'), 800)
+    } else {
+      setFase('entrando')
+      setTimeout(() => entrar(n, 'OPERADOR'), 700)
     }
   }
 
-  function handleSenhaSubmit(e: React.FormEvent) {
+  function handleSenha(e: React.FormEvent) {
     e.preventDefault()
-    setErroSenha(false)
     if (senha === DEV_PASSWORD) {
-      setFase('carregando')
-      setTimeout(() => entrar(nome.trim(), 'DESENVOLVEDOR'), 900)
+      setFase('entrando')
+      setTimeout(() => entrar(nome.trim(), 'DESENVOLVEDOR'), 700)
     } else {
       setErroSenha(true)
       setSenha('')
-      setTimeout(() => setErroSenha(false), 2500)
+      setTimeout(() => setErroSenha(false), 2200)
     }
   }
 
-  function voltarParaNome() {
-    setFase('nome')
-    setSenha('')
-    setErroSenha(false)
-  }
-
   return (
-    <div className="relative min-h-screen bg-slate-950 flex items-center justify-center overflow-hidden p-4">
+    <div className="min-h-screen bg-white flex flex-col items-center justify-center px-4">
 
-      {/* ── Grade decorativa de fundo ──────────────────────────────────────── */}
+      {/* Marca d'água de grade sutil */}
       <div
-        className="pointer-events-none absolute inset-0 opacity-[0.03]"
+        className="pointer-events-none fixed inset-0 opacity-[0.025]"
         style={{
-          backgroundImage: 'linear-gradient(#22c55e 1px, transparent 1px), linear-gradient(90deg, #22c55e 1px, transparent 1px)',
-          backgroundSize: '48px 48px',
+          backgroundImage: 'linear-gradient(#94a3b8 1px,transparent 1px),linear-gradient(90deg,#94a3b8 1px,transparent 1px)',
+          backgroundSize: '40px 40px',
         }}
       />
 
-      {/* ── Glows de luz neon ─────────────────────────────────────────────── */}
-      <div className="pointer-events-none absolute inset-0 overflow-hidden">
-        <div className="absolute -top-40 left-1/2 -translate-x-1/2 w-[600px] h-[600px] rounded-full
-                        bg-green-500/10 blur-[120px]" />
-        <div className="absolute bottom-0 right-0 w-[400px] h-[400px] rounded-full
-                        bg-emerald-600/8 blur-[100px]" />
-        <div className="absolute top-1/3 -left-20 w-[300px] h-[300px] rounded-full
-                        bg-teal-500/6 blur-[80px]" />
-      </div>
+      <div className="w-full max-w-[400px] relative">
 
-      {/* ── Partículas flutuantes decorativas ────────────────────────────── */}
-      {[...Array(6)].map((_, i) => (
+        {/* ── Cabeçalho / Produto ─────────────────────────────────────────── */}
         <motion.div
-          key={i}
-          className="pointer-events-none absolute w-1 h-1 rounded-full bg-green-400/40"
-          style={{ left: `${15 + i * 15}%`, top: `${20 + (i % 3) * 25}%` }}
-          animate={{ y: [0, -20, 0], opacity: [0.3, 0.7, 0.3] }}
-          transition={{ duration: 3 + i * 0.5, repeat: Infinity, ease: 'easeInOut', delay: i * 0.4 }}
-        />
-      ))}
+          initial={{ opacity: 0, y: -12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="text-center mb-10"
+        >
+          {/* Ícone minimalista */}
+          <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl
+                          bg-slate-900 mb-5 shadow-sm">
+            {/* Ícone de tanque estilizado em SVG inline */}
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
+                 stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <ellipse cx="12" cy="5" rx="9" ry="3"/>
+              <path d="M3 5v14a9 3 0 0018 0V5"/>
+              <path d="M3 12a9 3 0 0018 0"/>
+            </svg>
+          </div>
 
-      {/* ── Card principal ────────────────────────────────────────────────── */}
-      <motion.div
-        initial={{ opacity: 0, y: 32, scale: 0.96 }}
-        animate={{ opacity: 1, y: 0, scale: 1 }}
-        transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-        className="relative w-full max-w-md"
-      >
-        {/* Borda neon animada */}
-        <div className="absolute -inset-px rounded-2xl bg-gradient-to-br from-green-500/30 via-transparent to-emerald-500/20 blur-sm" />
+          <h1 className="text-2xl font-semibold tracking-tight text-slate-900">
+            SmartTank
+          </h1>
+          <p className="text-sm text-slate-400 mt-1.5 tracking-wide">
+            Sistema de Medição de Tanques Subterrâneos
+          </p>
+        </motion.div>
 
-        <div className="relative rounded-2xl bg-slate-900/90 border border-slate-700/60 backdrop-blur-xl shadow-2xl overflow-hidden">
+        {/* ── Card de Identificação ────────────────────────────────────────── */}
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.08 }}
+          className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden"
+        >
+          {/* Linha superior decorativa */}
+          <div className="h-[2px] w-full bg-slate-900" />
 
-          {/* Linha decorativa no topo */}
-          <div className="h-px w-full bg-gradient-to-r from-transparent via-green-500/60 to-transparent" />
-
-          <div className="p-8">
-            {/* Logo */}
-            <div className="flex flex-col items-center mb-8">
-              <motion.div
-                initial={{ scale: 0, rotate: -20 }}
-                animate={{ scale: 1, rotate: 0 }}
-                transition={{ delay: 0.2, duration: 0.5, type: 'spring', stiffness: 200 }}
-                className="relative w-20 h-20 rounded-2xl flex items-center justify-center mb-4"
-              >
-                {/* Brilho do ícone */}
-                <div className="absolute inset-0 rounded-2xl bg-green-500/20 blur-md" />
-                <div className="relative w-20 h-20 rounded-2xl bg-gradient-to-br from-green-600 to-emerald-700
-                                flex items-center justify-center shadow-lg shadow-green-900/50">
-                  <Fuel className="w-9 h-9 text-white" />
-                </div>
-              </motion.div>
-
-              <motion.div
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.35 }}
-                className="text-center"
-              >
-                <h1 className="text-3xl font-black tracking-tight text-white">
-                  Smart<span className="text-green-400">Tank</span>
-                </h1>
-                <p className="text-slate-400 text-sm mt-1 tracking-wide">
-                  Sistema de Medição Noturna · v2.0
-                </p>
-              </motion.div>
-            </div>
-
-            {/* ── Formulários com AnimatePresence ─────────────────────────── */}
+          <div className="p-7">
             <AnimatePresence mode="wait">
 
               {/* FASE: Nome */}
               {fase === 'nome' && (
                 <motion.form
-                  key="form-nome"
-                  initial={{ opacity: 0, x: -20 }}
+                  key="nome"
+                  initial={{ opacity: 0, x: -8 }}
                   animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: 20 }}
-                  transition={{ duration: 0.25 }}
-                  onSubmit={handleNomeSubmit}
+                  exit={{ opacity: 0, x: 8 }}
+                  transition={{ duration: 0.2 }}
+                  onSubmit={handleNome}
                   className="space-y-5"
                 >
                   <div>
-                    <label className="block text-xs font-semibold text-slate-400 uppercase tracking-widest mb-2">
-                      Identificação do Operador
-                    </label>
+                    <p className="text-sm font-medium text-slate-800 mb-1">
+                      Identificação
+                    </p>
+                    <p className="text-xs text-slate-400 mb-4">
+                      Informe seu nome para iniciar o registro do turno.
+                    </p>
                     <input
                       type="text"
                       value={nome}
                       onChange={e => setNome(e.target.value)}
-                      placeholder="Digite seu nome completo…"
+                      placeholder="Nome do operador"
                       autoFocus
-                      className="w-full rounded-xl bg-slate-800/80 border border-slate-600/60 px-4 py-3.5
-                                 text-white placeholder-slate-500 text-sm outline-none
-                                 focus:border-green-500/70 focus:ring-2 focus:ring-green-500/20
-                                 transition-all duration-200"
+                      className="w-full rounded-lg border border-slate-200 bg-slate-50
+                                 px-3.5 py-2.5 text-sm text-slate-900
+                                 placeholder:text-slate-400
+                                 outline-none transition-all
+                                 focus:border-slate-400 focus:bg-white focus:ring-3 focus:ring-slate-100"
                     />
                   </div>
 
                   <button
                     type="submit"
                     disabled={nome.trim().length < 2}
-                    className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl
-                               bg-gradient-to-r from-green-600 to-emerald-600 text-white font-semibold text-sm
-                               hover:from-green-500 hover:to-emerald-500
-                               disabled:opacity-40 disabled:cursor-not-allowed
-                               shadow-lg shadow-green-900/30 transition-all duration-200
-                               focus:outline-none focus:ring-2 focus:ring-green-500"
+                    className="w-full flex items-center justify-center gap-2
+                               py-2.5 rounded-lg bg-slate-900 text-white text-sm font-medium
+                               hover:bg-slate-800 active:bg-slate-950
+                               disabled:opacity-35 disabled:cursor-not-allowed
+                               transition-colors duration-150"
                   >
-                    Entrar no Sistema
-                    <ArrowRight className="w-4 h-4" />
+                    Entrar
+                    <ArrowRight className="w-3.5 h-3.5" />
                   </button>
                 </motion.form>
               )}
 
-              {/* FASE: Senha Dev (Easter Egg) */}
+              {/* FASE: Senha Dev — campo oculto que aparece com animação suave */}
               {fase === 'senha_dev' && (
                 <motion.form
-                  key="form-senha"
-                  initial={{ opacity: 0, y: 20 }}
+                  key="senha"
+                  initial={{ opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -20 }}
-                  transition={{ duration: 0.3, ease: 'easeOut' }}
-                  onSubmit={handleSenhaSubmit}
+                  exit={{ opacity: 0, y: -8 }}
+                  transition={{ duration: 0.25 }}
+                  onSubmit={handleSenha}
                   className="space-y-5"
                 >
-                  {/* Badge dev */}
-                  <motion.div
-                    initial={{ scale: 0.8, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    transition={{ delay: 0.1 }}
-                    className="flex items-center gap-2 px-3 py-2 rounded-lg
-                               bg-amber-500/10 border border-amber-500/30"
-                  >
-                    <Zap className="w-4 h-4 text-amber-400 shrink-0" />
-                    <span className="text-xs text-amber-300 font-medium">
-                      Modo Desenvolvedor detectado — autenticação adicional requerida
-                    </span>
-                  </motion.div>
+                  {/* Aviso discreto */}
+                  <div className="flex items-start gap-2.5 p-3 rounded-lg bg-slate-50 border border-slate-100">
+                    <span className="text-slate-400 mt-px text-xs leading-none">🔑</span>
+                    <div>
+                      <p className="text-xs font-medium text-slate-700">Acesso restrito</p>
+                      <p className="text-xs text-slate-400 mt-0.5">
+                        Insira a senha de desenvolvedor para continuar.
+                      </p>
+                    </div>
+                  </div>
 
                   <div>
-                    <label className="block text-xs font-semibold text-slate-400 uppercase tracking-widest mb-2">
-                      Senha do Desenvolvedor
+                    <label className="block text-xs font-medium text-slate-600 mb-1.5">
+                      Senha do desenvolvedor
                     </label>
                     <div className="relative">
                       <input
                         ref={senhaRef}
-                        type={mostrarSenha ? 'text' : 'password'}
+                        type={senhaVisivel ? 'text' : 'password'}
                         value={senha}
                         onChange={e => { setSenha(e.target.value); setErroSenha(false) }}
-                        placeholder="••••••••"
-                        className={`w-full rounded-xl bg-slate-800/80 border px-4 py-3.5 pr-12
-                                   text-white placeholder-slate-500 text-sm outline-none
-                                   focus:ring-2 transition-all duration-200
+                        placeholder="••••••••••"
+                        className={`w-full rounded-lg border bg-slate-50 pr-10
+                                   px-3.5 py-2.5 text-sm text-slate-900
+                                   outline-none transition-all
                                    ${erroSenha
-                                     ? 'border-red-500/70 focus:ring-red-500/20 animate-shake'
-                                     : 'border-slate-600/60 focus:border-amber-500/70 focus:ring-amber-500/20'}`}
+                                     ? 'border-red-300 bg-red-50 focus:ring-3 focus:ring-red-100'
+                                     : 'border-slate-200 focus:border-slate-400 focus:bg-white focus:ring-3 focus:ring-slate-100'
+                                   }`}
                       />
                       <button
                         type="button"
-                        onClick={() => setMostrarSenha(v => !v)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition-colors"
+                        onClick={() => setSenhaVisivel(v => !v)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2
+                                   text-slate-400 hover:text-slate-600 transition-colors"
                       >
-                        {mostrarSenha ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        {senhaVisivel
+                          ? <EyeOff className="w-4 h-4" />
+                          : <Eye className="w-4 h-4" />}
                       </button>
                     </div>
+
                     <AnimatePresence>
                       {erroSenha && (
                         <motion.p
-                          initial={{ opacity: 0, y: -4 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0 }}
-                          className="mt-2 text-xs text-red-400"
+                          initial={{ opacity: 0, y: -4, height: 0 }}
+                          animate={{ opacity: 1, y: 0, height: 'auto' }}
+                          exit={{ opacity: 0, height: 0 }}
+                          transition={{ duration: 0.18 }}
+                          className="mt-1.5 text-xs text-red-500"
                         >
                           Senha incorreta. Tente novamente.
                         </motion.p>
@@ -243,60 +214,57 @@ export function LandingPage() {
                     </AnimatePresence>
                   </div>
 
-                  <div className="flex gap-3">
+                  <div className="flex gap-2.5">
                     <button
                       type="button"
-                      onClick={voltarParaNome}
-                      className="flex-1 py-3 rounded-xl border border-slate-600/60 text-slate-400 text-sm
-                                 hover:border-slate-500 hover:text-slate-300 transition-all duration-200"
+                      onClick={() => { setFase('nome'); setSenha('') }}
+                      className="flex-1 py-2.5 rounded-lg border border-slate-200
+                                 text-sm text-slate-600 hover:bg-slate-50
+                                 transition-colors duration-150"
                     >
                       Voltar
                     </button>
                     <button
                       type="submit"
                       disabled={senha.length < 3}
-                      className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl
-                                 bg-gradient-to-r from-amber-600 to-orange-600 text-white font-semibold text-sm
-                                 hover:from-amber-500 hover:to-orange-500
-                                 disabled:opacity-40 disabled:cursor-not-allowed
-                                 shadow-lg shadow-amber-900/30 transition-all duration-200"
+                      className="flex-1 py-2.5 rounded-lg bg-slate-900 text-white text-sm font-medium
+                                 hover:bg-slate-800 disabled:opacity-35 disabled:cursor-not-allowed
+                                 transition-colors duration-150"
                     >
-                      <ShieldCheck className="w-4 h-4" />
                       Acessar
                     </button>
                   </div>
                 </motion.form>
               )}
 
-              {/* FASE: Carregando */}
-              {fase === 'carregando' && (
+              {/* FASE: Entrando */}
+              {fase === 'entrando' && (
                 <motion.div
-                  key="carregando"
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  className="flex flex-col items-center justify-center py-8 gap-4"
+                  key="entrando"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="flex flex-col items-center justify-center py-8 gap-3"
                 >
-                  <motion.div
-                    animate={{ rotate: 360 }}
-                    transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-                  >
-                    <Loader2 className="w-10 h-10 text-green-400" />
-                  </motion.div>
-                  <p className="text-slate-400 text-sm">Carregando painel…</p>
+                  <Loader2 className="w-6 h-6 text-slate-400 animate-spin" />
+                  <p className="text-sm text-slate-400">Carregando painel…</p>
                 </motion.div>
               )}
 
             </AnimatePresence>
           </div>
+        </motion.div>
 
-          {/* Rodapé do card */}
-          <div className="px-8 py-4 border-t border-slate-800/80 flex items-center justify-between">
-            <span className="text-xs text-slate-600">Turno Noturno · 00:00</span>
-            <span className="text-xs text-slate-700 font-mono">SmartTank UI v2.0</span>
-          </div>
-        </div>
-      </motion.div>
+        {/* Rodapé discreto */}
+        <motion.p
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.4 }}
+          className="text-center text-xs text-slate-300 mt-8 tracking-wide"
+        >
+          SmartTank UI · Turno 00:00
+        </motion.p>
 
+      </div>
     </div>
   )
 }

@@ -60,3 +60,23 @@ create policy "Atualização pública de leituras"
 
 create policy "Exclusão pública de leituras"
   on public.leituras_tanque for delete using (true);
+
+-- ── Arqueação: overrides do Dev (valores fixados manualmente) ──────────────
+create table if not exists public.arqueacao_overrides (
+  tanque_id     smallint    not null,
+  altura_cm     smallint    not null,
+  volume_litros numeric(10,2) not null,
+  updated_at    timestamptz not null default now(),
+  primary key (tanque_id, altura_cm)
+);
+
+alter table public.arqueacao_overrides enable row level security;
+
+create policy "Leitura pública de overrides"
+  on public.arqueacao_overrides for select using (true);
+create policy "Inserção pública de overrides"
+  on public.arqueacao_overrides for insert with check (true);
+create policy "Atualização pública de overrides"
+  on public.arqueacao_overrides for update using (true);
+create policy "Exclusão pública de overrides"
+  on public.arqueacao_overrides for delete using (true);
