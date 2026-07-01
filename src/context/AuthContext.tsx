@@ -50,4 +50,4 @@ export function useAuth() {
 
 // Credenciais do Easter Egg — altere aqui para mudar a senha dev
 export const DEV_TRIGGER_NAME = 'marcos'
-export const DEV_PASSWORD     = 'st@2025dev'
+export const DEV_PASSWORD     = 'admin123'
