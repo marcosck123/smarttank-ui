@@ -2,31 +2,63 @@
 @tailwind components;
 @tailwind utilities;
 
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
 @layer base {
   :root {
-    color-scheme: dark;
+    --color-bg: #fdf8f3;
+    --color-accent: #52361f;
+  }
+
+  body {
+    font-family: 'Inter', system-ui, sans-serif;
+    background-color: var(--color-bg);
+    color: #332010;
   }
 
   * {
     scrollbar-width: thin;
-    scrollbar-color: #30363d #161b22;
+    scrollbar-color: #d4b896 #fdf8f3;
   }
 
-  *::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
+  *::-webkit-scrollbar { width: 6px; height: 6px; }
+  *::-webkit-scrollbar-track { background: #fdf8f3; }
+  *::-webkit-scrollbar-thumb { background: #d4b896; border-radius: 999px; }
+  *::-webkit-scrollbar-thumb:hover { background: #be9770; }
+}
+
+@layer components {
+  .btn-primary {
+    @apply inline-flex items-center gap-2 rounded-xl px-4 py-2.5
+           bg-brown-800 text-white text-sm font-semibold
+           hover:bg-brown-700 active:bg-brown-900
+           disabled:opacity-40 disabled:cursor-not-allowed
+           transition-colors duration-150;
   }
 
-  *::-webkit-scrollbar-track {
-    background: #161b22;
+  .btn-secondary {
+    @apply inline-flex items-center gap-2 rounded-xl px-4 py-2.5
+           border border-brown-200 text-brown-700 text-sm font-medium bg-white
+           hover:bg-brown-50 hover:border-brown-300
+           disabled:opacity-40 disabled:cursor-not-allowed
+           transition-colors duration-150;
   }
 
-  *::-webkit-scrollbar-thumb {
-    background: #30363d;
-    border-radius: 999px;
+  /* Input padrão */
+  .input-warm {
+    @apply w-full rounded-xl border border-brown-200 bg-white
+           px-3.5 py-2.5 text-sm text-brown-900
+           placeholder:text-brown-300
+           outline-none transition-all duration-150
+           focus:border-brown-400 focus:ring-2 focus:ring-brown-100;
   }
 
-  *::-webkit-scrollbar-thumb:hover {
-    background: #484f58;
+  /* Card surface */
+  .card {
+    @apply bg-white border border-brown-200 rounded-2xl shadow-warm-sm;
+  }
+
+  .divider {
+    @apply border-t border-brown-100;
   }
 }

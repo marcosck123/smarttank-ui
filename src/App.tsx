@@ -16,14 +16,14 @@ function PainelInterno() {
   const { historico, statusSync, modoOffline, salvarMedicao, excluirMedicao, recarregarHistorico } = useAppStore()
 
   return (
-    <div className="flex min-h-screen bg-slate-950">
+    <div className="flex min-h-screen bg-brown-50">
       <Sidebar />
 
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Barra de status de sync */}
         {modoOffline && (
-          <div className="flex items-center gap-2 px-4 py-1.5 bg-yellow-950/50 border-b border-yellow-800/30 text-yellow-400 text-xs">
-            ⚠️ Modo offline — dados salvos localmente. Configure o Supabase para sincronizar.
+          <div className="flex items-center gap-2 px-4 py-1.5 bg-amber-50 border-b border-amber-200 text-amber-700 text-xs">
+            Modo offline — dados salvos localmente. Configure o Supabase para sincronizar.
           </div>
         )}
 

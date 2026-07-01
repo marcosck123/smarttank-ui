@@ -58,19 +58,17 @@ export function FormularioLancamento({ operador, onSalvar, statusSync }: Props) 
   return (
     <>
       <form onSubmit={handleAvancar} className="space-y-6">
-        {/* Cabeçalho */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <ClipboardList className="w-5 h-5 text-green-400" />
-            <h2 className="text-lg font-semibold text-white">Lançamento de Medição</h2>
+            <ClipboardList className="w-5 h-5 text-brown-600" />
+            <h2 className="text-lg font-semibold text-brown-900">Lançamento de Medição</h2>
           </div>
           <div className="text-right">
-            <p className="text-xs text-slate-500">Operador</p>
-            <p className="text-sm font-semibold text-white">{operador}</p>
+            <p className="text-xs text-brown-400">Operador</p>
+            <p className="text-sm font-semibold text-brown-800">{operador}</p>
           </div>
         </div>
 
-        {/* Grupos por combustível */}
         {GRUPOS_COMBUSTIVEL.map(({ tipo, tanques }) => {
           const leiturasGrupo = leituras.filter(l => l.tipo === tipo)
           const totalGrupo    = leiturasGrupo.reduce((acc, l) => acc + (l.valido ? l.volumeLitros : 0), 0)
@@ -78,7 +76,7 @@ export function FormularioLancamento({ operador, onSalvar, statusSync }: Props) 
 
           return (
             <section key={tipo}>
-              <div className={`flex items-center justify-between rounded-xl border px-4 py-2 mb-3 ${cor.text} ${cor.border} ${cor.bg}`}>
+              <div className={`flex items-center justify-between rounded-xl border px-4 py-2 mb-3 ${cor.grupo}`}>
                 <span className="text-sm font-semibold">{tipo}</span>
                 {totalGrupo > 0 && (
                   <span className="text-xs font-mono">
@@ -96,25 +94,23 @@ export function FormularioLancamento({ operador, onSalvar, statusSync }: Props) 
           )
         })}
 
-        {/* Observações */}
         <section>
-          <label className="block text-sm font-medium text-slate-400 mb-2">Observações da Noite</label>
+          <label className="block text-sm font-medium text-brown-600 mb-2">Observações da Noite</label>
           <textarea
             rows={3}
             value={observacoes}
             onChange={e => setObservacoes(e.target.value)}
             placeholder="Registro de ocorrências, abastecimentos, manutenções…"
-            className="w-full rounded-2xl bg-slate-800/60 border border-slate-700/60 px-4 py-3 text-sm
-                       text-white placeholder-slate-500 outline-none resize-none
-                       focus:ring-2 focus:ring-green-500/30 focus:border-green-500/50 transition-all"
+            className="w-full rounded-2xl bg-brown-50 border border-brown-200 px-4 py-3 text-sm
+                       text-brown-900 placeholder:text-brown-300 outline-none resize-none
+                       focus:ring-2 focus:ring-brown-100 focus:border-brown-400 transition-all"
           />
         </section>
 
-        {/* Rodapé com total e botão */}
-        <div className="flex items-center justify-between rounded-2xl bg-slate-800/60 border border-slate-700/60 px-5 py-4">
+        <div className="flex items-center justify-between rounded-2xl bg-white border border-brown-200 shadow-warm-sm px-5 py-4">
           <div>
-            <p className="text-xs text-slate-500">Total geral</p>
-            <p className="text-2xl font-bold font-mono text-white">
+            <p className="text-xs text-brown-400">Total geral</p>
+            <p className="text-2xl font-bold font-mono text-brown-900">
               {Math.round(totalLitros).toLocaleString('pt-BR')} L
             </p>
           </div>
@@ -122,12 +118,7 @@ export function FormularioLancamento({ operador, onSalvar, statusSync }: Props) 
             type="submit"
             disabled={!todasPreenchidas || statusSync === 'salvando'}
             whileTap={{ scale: 0.97 }}
-            className="flex items-center gap-2 px-6 py-3 rounded-xl font-semibold text-sm
-                       bg-gradient-to-r from-green-600 to-emerald-600 text-white
-                       hover:from-green-500 hover:to-emerald-500
-                       disabled:opacity-40 disabled:cursor-not-allowed
-                       shadow-lg shadow-green-900/30 transition-all
-                       focus:outline-none focus:ring-2 focus:ring-green-500"
+            className="btn-primary flex items-center gap-2 px-6 py-3 disabled:opacity-40 disabled:cursor-not-allowed"
           >
             <Send className="w-4 h-4" />
             Avançar para Conferência
@@ -135,7 +126,6 @@ export function FormularioLancamento({ operador, onSalvar, statusSync }: Props) 
         </div>
       </form>
 
-      {/* Modal 1 — Prévia */}
       <AnimatePresence>
         {medicaoPreview && (
           <ModalPreview
@@ -146,7 +136,6 @@ export function FormularioLancamento({ operador, onSalvar, statusSync }: Props) 
         )}
       </AnimatePresence>
 
-      {/* Modal 2 — Confirmação sobreposto */}
       <AnimatePresence>
         {confirming && (
           <ModalConfirmacao
