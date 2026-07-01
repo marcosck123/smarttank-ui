@@ -1,52 +1,43 @@
 import { Cloud, CloudOff, Loader2, CheckCircle2, AlertCircle } from 'lucide-react'
 import type { StatusSync } from '@/store/useAppStore'
 
-interface Props {
-  statusSync: StatusSync
-  modoOffline: boolean
-}
+interface Props { statusSync: StatusSync; modoOffline: boolean }
 
 export function StatusBar({ statusSync, modoOffline }: Props) {
-  if (modoOffline) {
-    return (
-      <div className="flex items-center gap-2 px-4 py-1.5 bg-yellow-950/60 border-b border-yellow-800/40 text-yellow-400 text-xs">
-        <CloudOff className="w-3.5 h-3.5" />
-        Modo offline — dados salvos localmente. Configure o Supabase para sincronizar na nuvem.
-      </div>
-    )
-  }
+  const base = 'flex items-center gap-2 px-5 py-1.5 text-xs border-b'
 
-  if (statusSync === 'carregando') {
-    return (
-      <div className="flex items-center gap-2 px-4 py-1.5 bg-surface-800 border-b border-surface-600 text-surface-400 text-xs">
-        <Loader2 className="w-3.5 h-3.5 animate-spin" />
-        Carregando histórico do Supabase…
-      </div>
-    )
-  }
+  if (modoOffline) return (
+    <div className={`${base} bg-amber-50 border-amber-200 text-amber-700`}>
+      <CloudOff className="w-3.5 h-3.5 shrink-0" />
+      Modo offline — dados salvos localmente. Configure o Supabase para sincronizar.
+    </div>
+  )
 
-  if (statusSync === 'salvando') {
-    return (
-      <div className="flex items-center gap-2 px-4 py-1.5 bg-surface-800 border-b border-surface-600 text-brand-400 text-xs">
-        <Loader2 className="w-3.5 h-3.5 animate-spin" />
-        Sincronizando com Supabase…
-      </div>
-    )
-  }
+  if (statusSync === 'carregando') return (
+    <div className={`${base} bg-brown-50 border-brown-100 text-brown-500`}>
+      <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0" />
+      Carregando histórico do Supabase…
+    </div>
+  )
 
-  if (statusSync === 'erro') {
-    return (
-      <div className="flex items-center gap-2 px-4 py-1.5 bg-red-950/50 border-b border-red-800/40 text-red-400 text-xs">
-        <AlertCircle className="w-3.5 h-3.5" />
-        Erro ao sincronizar — dados salvos localmente como backup.
-      </div>
-    )
-  }
+  if (statusSync === 'salvando') return (
+    <div className={`${base} bg-brown-50 border-brown-100 text-brown-600`}>
+      <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0" />
+      Sincronizando com Supabase…
+    </div>
+  )
+
+  if (statusSync === 'erro') return (
+    <div className={`${base} bg-red-50 border-red-200 text-red-600`}>
+      <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+      Erro ao sincronizar — dados salvos localmente como backup.
+    </div>
+  )
 
   return (
-    <div className="flex items-center gap-2 px-4 py-1.5 bg-surface-800 border-b border-surface-600 text-surface-500 text-xs">
-      <Cloud className="w-3.5 h-3.5 text-brand-500" />
-      <CheckCircle2 className="w-3 h-3 text-brand-500" />
+    <div className={`${base} bg-brown-50 border-brown-100 text-brown-400`}>
+      <CheckCircle2 className="w-3.5 h-3.5 text-green-600 shrink-0" />
+      <Cloud className="w-3.5 h-3.5 text-green-600 shrink-0" />
       Sincronizado com Supabase
     </div>
   )
