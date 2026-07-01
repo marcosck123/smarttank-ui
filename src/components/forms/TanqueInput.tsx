@@ -1,5 +1,6 @@
 import type { LeiturasTanque } from '@/types'
 import { formatarVolume } from '@/lib/calcVolume'
+import { COR_COMBUSTIVEL } from '@/config/tanquesConfig'
 
 interface Props {
   leitura: LeiturasTanque
@@ -7,27 +8,26 @@ interface Props {
 }
 
 export function TanqueInput({ leitura, onChange }: Props) {
-  const { tanqueId, nome, comprimentoM, alturaCm, volumeLitros, percentual, valido, erro } = leitura
+  const { tanqueId, nome, tipo, comprimentoM, alturaCm, volumeLitros, percentual, valido, erro } = leitura
+  const cor = COR_COMBUSTIVEL[tipo]
 
-  const barColor =
+  const nivelCor =
     percentual >= 80 ? 'bg-green-500' :
     percentual >= 40 ? 'bg-yellow-400' :
-    percentual > 0   ? 'bg-red-500'   : 'bg-surface-600'
+    percentual > 0   ? 'bg-red-500'   : 'bg-slate-700'
 
   return (
-    <div className={`
-      rounded-xl border p-4 transition-colors
-      ${erro ? 'border-red-500/60 bg-red-950/20' : alturaCm && valido
-        ? 'border-brand-500/40 bg-surface-700'
-        : 'border-surface-600 bg-surface-700'}
-    `}>
+    <div className={`rounded-2xl border p-4 transition-all duration-200
+      ${erro ? 'border-red-500/50 bg-red-950/20'
+             : alturaCm && valido ? `${cor.border} bg-slate-800/60` : 'border-slate-700/50 bg-slate-800/40'}`}
+    >
       <div className="flex items-center justify-between mb-3">
         <div>
           <span className="text-sm font-semibold text-white">{nome}</span>
-          <span className="ml-2 text-xs text-surface-500">L = {comprimentoM}m</span>
+          <span className="ml-2 text-xs text-slate-600">L = {comprimentoM}m</span>
         </div>
         {alturaCm && valido && (
-          <span className="text-xs font-mono text-brand-500">{percentual.toFixed(1)}%</span>
+          <span className={`text-xs font-mono font-semibold ${cor.text}`}>{percentual.toFixed(1)}%</span>
         )}
       </div>
 
@@ -42,39 +42,34 @@ export function TanqueInput({ leitura, onChange }: Props) {
             value={alturaCm}
             onChange={e => onChange(tanqueId, e.target.value)}
             placeholder="Altura (cm)"
-            className={`
-              w-full rounded-lg bg-surface-800 border px-3 py-2 text-sm text-white
-              placeholder-surface-500 outline-none transition-colors
-              focus:ring-2 focus:ring-brand-500/50
-              [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none
-              [&::-webkit-inner-spin-button]:appearance-none
-              ${erro ? 'border-red-500 focus:border-red-400'
-                     : 'border-surface-600 focus:border-brand-500'}
-            `}
+            className={`w-full rounded-xl bg-slate-900/60 border px-3 py-2.5 text-sm text-white
+                        placeholder-slate-600 outline-none transition-all
+                        focus:ring-2 focus:ring-green-500/25
+                        [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none
+                        [&::-webkit-inner-spin-button]:appearance-none
+                        ${erro ? 'border-red-500/60 focus:border-red-400'
+                               : 'border-slate-700/60 focus:border-green-500/50'}`}
           />
-          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-surface-500">cm</span>
+          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-600">cm</span>
         </div>
 
         <div className="w-28 text-right">
-          {alturaCm && valido ? (
-            <span className="text-sm font-mono font-semibold text-white">{formatarVolume(volumeLitros)}</span>
-          ) : (
-            <span className="text-xs text-surface-500">— L</span>
-          )}
+          {alturaCm && valido
+            ? <span className={`text-sm font-mono font-semibold ${cor.text}`}>{formatarVolume(volumeLitros)}</span>
+            : <span className="text-xs text-slate-600">— L</span>
+          }
         </div>
       </div>
 
       {/* Barra de nível */}
-      <div className="mt-3 h-1.5 rounded-full bg-surface-600 overflow-hidden">
+      <div className="mt-3 h-1.5 rounded-full bg-slate-700 overflow-hidden">
         <div
-          className={`h-full rounded-full transition-all duration-300 ${barColor}`}
+          className={`h-full rounded-full transition-all duration-300 ${nivelCor}`}
           style={{ width: `${alturaCm && valido ? percentual : 0}%` }}
         />
       </div>
 
-      {erro && (
-        <p className="mt-1.5 text-xs text-red-400">{erro}</p>
-      )}
+      {erro && <p className="mt-1.5 text-xs text-red-400">{erro}</p>}
     </div>
   )
 }

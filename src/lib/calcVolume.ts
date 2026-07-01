@@ -2,66 +2,78 @@ import { RAIO_M, ALTURA_MAX_CM } from '@/config/tanquesConfig'
 
 export interface ResultadoCalculo {
   volumeLitros: number
-  percentual: number    // 0–100
+  percentual: number     // 0–100
+  alturaM: number
   valido: boolean
   erro?: string
 }
 
-/**
- * Calcula o volume de um tanque cilíndrico horizontal (segmento circular).
- *
- * Fórmula (adaptada do Excel):
- *   V(L) = L × 1000 × [ R² × acos((R−h)/R) − (R−h) × √(2Rh − h²) ]
- *
- * Onde:
- *   R = raio em metros (1.275 m)
- *   L = comprimento em metros
- *   h = altura do líquido em metros
- */
+// ─────────────────────────────────────────────────────────────────────────────
+// CÁLCULO DIRETO: altura (cm) → volume (L)
+// Fórmula de segmento circular de cilindro horizontal
+// ─────────────────────────────────────────────────────────────────────────────
 export function calcularVolume(alturaCm: number, comprimentoM: number): ResultadoCalculo {
   if (alturaCm < 0 || alturaCm > ALTURA_MAX_CM) {
-    return {
-      volumeLitros: 0,
-      percentual: 0,
-      valido: false,
-      erro: `Altura deve estar entre 0 e ${ALTURA_MAX_CM} cm`,
-    }
+    return { volumeLitros: 0, percentual: 0, alturaM: 0, valido: false, erro: `Altura deve estar entre 0 e ${ALTURA_MAX_CM} cm` }
   }
 
   const R = RAIO_M
   const L = comprimentoM
-  const h = alturaCm / 100  // converte cm → metros
+  const h = alturaCm / 100
 
-  const argAcos = Math.max(-1, Math.min(1, (R - h) / R))
+  const argAcos  = Math.max(-1, Math.min(1, (R - h) / R))
   const radicando = Math.max(0, 2 * R * h - Math.pow(h, 2))
+  const volumeLitros = L * 1000 * (Math.pow(R, 2) * Math.acos(argAcos) - (R - h) * Math.sqrt(radicando))
 
-  const volumeLitros =
-    L * 1000 * (Math.pow(R, 2) * Math.acos(argAcos) - (R - h) * Math.sqrt(radicando))
-
-  // Volume máximo (tanque cheio, h = diâmetro = 2R)
   const volumeMax = calcularVolumeMax(comprimentoM)
   const percentual = volumeMax > 0 ? Math.min(100, (volumeLitros / volumeMax) * 100) : 0
 
   return {
-    volumeLitros: Math.round(volumeLitros * 10) / 10,   // 1 casa decimal
-    percentual: Math.round(percentual * 10) / 10,
+    volumeLitros: Math.round(volumeLitros * 10) / 10,
+    percentual:   Math.round(percentual   * 10) / 10,
+    alturaM: h,
     valido: true,
   }
 }
 
-/** Volume máximo teórico do tanque (tanque 100% cheio) */
+// ─────────────────────────────────────────────────────────────────────────────
+// CÁLCULO INVERSO: volume (L) → altura (cm)
+// Busca binária — não existe solução analítica fechada para h
+// ─────────────────────────────────────────────────────────────────────────────
+export function calcularAlturaDeVolume(volumeAlvo: number, comprimentoM: number): number {
+  const vMax = calcularVolumeMax(comprimentoM)
+  if (volumeAlvo <= 0)    return 0
+  if (volumeAlvo >= vMax) return ALTURA_MAX_CM
+
+  let lo = 0
+  let hi = ALTURA_MAX_CM
+  for (let i = 0; i < 60; i++) {
+    const mid = (lo + hi) / 2
+    const v = calcularVolume(mid, comprimentoM).volumeLitros
+    if (v < volumeAlvo) lo = mid
+    else                hi = mid
+  }
+  return Math.round(((lo + hi) / 2) * 10) / 10
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// VOLUME MÁXIMO (tanque 100% cheio)
+// ─────────────────────────────────────────────────────────────────────────────
 export function calcularVolumeMax(comprimentoM: number): number {
   const R = RAIO_M
-  const h = 2 * R  // diâmetro = altura máxima real do cilindro
-  const argAcos = Math.max(-1, Math.min(1, (R - h) / R))
+  const h = 2 * R
+  const argAcos   = Math.max(-1, Math.min(1, (R - h) / R))
   const radicando = Math.max(0, 2 * R * h - Math.pow(h, 2))
   return comprimentoM * 1000 * (Math.pow(R, 2) * Math.acos(argAcos) - (R - h) * Math.sqrt(radicando))
 }
 
-/** Formata volume para exibição amigável */
+// ─────────────────────────────────────────────────────────────────────────────
+// FORMATAÇÃO
+// ─────────────────────────────────────────────────────────────────────────────
 export function formatarVolume(litros: number): string {
-  return new Intl.NumberFormat('pt-BR', {
-    minimumFractionDigits: 1,
-    maximumFractionDigits: 1,
-  }).format(litros) + ' L'
+  return new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(litros) + ' L'
+}
+
+export function formatarNumero(n: number, casas = 1): string {
+  return new Intl.NumberFormat('pt-BR', { minimumFractionDigits: casas, maximumFractionDigits: casas }).format(n)
 }

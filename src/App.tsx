@@ -1,80 +1,87 @@
-import { useState, useCallback } from 'react'
-import { useAppStore } from '@/store/useAppStore'
-import { TelaLogin } from '@/components/ui/TelaLogin'
-import { Sidebar } from '@/components/layout/Sidebar'
+import { AnimatePresence, motion } from 'framer-motion'
+import { AuthProvider, useAuth } from '@/context/AuthContext'
+import { NavProvider, useNav } from '@/context/NavContext'
+import { LandingPage } from '@/components/auth/LandingPage'
+import { Sidebar } from '@/components/sidebar/Sidebar'
 import { FormularioLancamento } from '@/components/forms/FormularioLancamento'
 import { Historico } from '@/components/history/Historico'
-import { ModalPreview } from '@/components/preview/ModalPreview'
-import { StatusBar } from '@/components/ui/StatusBar'
-import { gerarPlanilha } from '@/lib/gerarPlanilha'
-import type { Medicao } from '@/types'
+import { GestaoTanques } from '@/pages/dev/GestaoTanques'
+import { Dashboard } from '@/pages/dev/Dashboard'
+import { RelatoriosStock } from '@/pages/dev/RelatoriosStock'
+import { useAppStore } from '@/store/useAppStore'
 
-function gerarId() {
-  return `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
+function PainelInterno() {
+  const { paginaAtiva } = useNav()
+  const { usuario } = useAuth()
+  const { historico, statusSync, modoOffline, salvarMedicao, excluirMedicao, recarregarHistorico } = useAppStore()
+
+  return (
+    <div className="flex min-h-screen bg-slate-950">
+      <Sidebar />
+
+      <div className="flex-1 flex flex-col overflow-hidden">
+        {/* Barra de status de sync */}
+        {modoOffline && (
+          <div className="flex items-center gap-2 px-4 py-1.5 bg-yellow-950/50 border-b border-yellow-800/30 text-yellow-400 text-xs">
+            ⚠️ Modo offline — dados salvos localmente. Configure o Supabase para sincronizar.
+          </div>
+        )}
+
+        <main className="flex-1 overflow-y-auto">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={paginaAtiva}
+              initial={{ opacity: 0, x: 10 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -10 }}
+              transition={{ duration: 0.18 }}
+              className="h-full p-6 lg:p-8"
+            >
+              {paginaAtiva === 'dashboard'       && <Dashboard historico={historico} />}
+              {paginaAtiva === 'lancamento'      && <FormularioLancamento operador={usuario?.nome ?? ''} onSalvar={salvarMedicao} statusSync={statusSync} />}
+              {paginaAtiva === 'relatorios_stock'&& <RelatoriosStock historico={historico} />}
+              {paginaAtiva === 'gestao_tanques'  && <GestaoTanques />}
+              {paginaAtiva === 'historico'       && (
+                <Historico
+                  historico={historico}
+                  carregando={statusSync === 'carregando'}
+                  onVisualizar={() => {}}
+                  onExcluir={excluirMedicao}
+                  onRecarregar={recarregarHistorico}
+                />
+              )}
+            </motion.div>
+          </AnimatePresence>
+        </main>
+      </div>
+    </div>
+  )
+}
+
+function AppRoutes() {
+  const { usuario } = useAuth()
+
+  return (
+    <AnimatePresence mode="wait">
+      {!usuario ? (
+        <motion.div key="landing" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+          <LandingPage />
+        </motion.div>
+      ) : (
+        <motion.div key="painel" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="h-full">
+          <NavProvider>
+            <PainelInterno />
+          </NavProvider>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  )
 }
 
 export default function App() {
-  const {
-    operador, salvarOperador,
-    abaAtiva, setAbaAtiva,
-    historico, statusSync, modoOffline,
-    salvarMedicao, excluirMedicao, recarregarHistorico,
-  } = useAppStore()
-
-  const [medicaoPreview, setMedicaoPreview] = useState<Medicao | null>(null)
-  const [emitindo, setEmitindo] = useState(false)
-
-  const handlePreview = useCallback((dados: Omit<Medicao, 'id' | 'dataHora'>) => {
-    setMedicaoPreview({ ...dados, id: gerarId(), dataHora: new Date().toISOString() })
-  }, [])
-
-  const handleConfirmar = useCallback(async () => {
-    if (!medicaoPreview) return
-    setEmitindo(true)
-    try {
-      await salvarMedicao(medicaoPreview)
-      await gerarPlanilha(medicaoPreview)
-      setMedicaoPreview(null)
-    } finally {
-      setEmitindo(false)
-    }
-  }, [medicaoPreview, salvarMedicao])
-
-  if (!operador) {
-    return <TelaLogin onEntrar={salvarOperador} />
-  }
-
   return (
-    <div className="flex min-h-screen bg-surface-900">
-      <Sidebar abaAtiva={abaAtiva} operador={operador} onNavegar={setAbaAtiva} />
-
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <StatusBar statusSync={statusSync} modoOffline={modoOffline} />
-
-        <main className="flex-1 overflow-y-auto p-6 lg:p-8">
-          {abaAtiva === 'lancamento' && (
-            <FormularioLancamento operador={operador} onPreview={handlePreview} />
-          )}
-          {abaAtiva === 'historico' && (
-            <Historico
-              historico={historico}
-              carregando={statusSync === 'carregando'}
-              onVisualizar={m => setMedicaoPreview(m)}
-              onExcluir={excluirMedicao}
-              onRecarregar={recarregarHistorico}
-            />
-          )}
-        </main>
-      </div>
-
-      {medicaoPreview && (
-        <ModalPreview
-          medicao={medicaoPreview}
-          onConfirmar={handleConfirmar}
-          onFechar={() => setMedicaoPreview(null)}
-          emitindo={emitindo}
-        />
-      )}
-    </div>
+    <AuthProvider>
+      <AppRoutes />
+    </AuthProvider>
   )
 }
