@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useCallback, type ReactNode } from 'react'
+import { registrarAcesso } from '@/lib/supabase/usuariosService'
 
 export type Perfil = 'OPERADOR' | 'DESENVOLVEDOR'
 
@@ -28,6 +29,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const u: Usuario = { nome, perfil }
     sessionStorage.setItem(SESSION_KEY, JSON.stringify(u))
     setUsuario(u)
+    // Registra o acesso e faz upsert do usuário (best-effort, não bloqueia o login)
+    void registrarAcesso(nome, perfil, 'login')
   }, [])
 
   const sair = useCallback(() => {

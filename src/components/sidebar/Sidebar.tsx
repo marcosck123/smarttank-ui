@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
-  Fuel, ClipboardList, History, LayoutDashboard,
-  Database, BarChart2, ChevronDown, LogOut, Zap
+  Fuel, ClipboardList, FileText, LayoutDashboard,
+  Database, BarChart2, ChevronDown, LogOut, Zap, Settings
 } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
 import type { Pagina } from '@/context/NavContext'
@@ -10,14 +10,15 @@ import { useNav } from '@/context/NavContext'
 
 const SUBITENS: { id: Pagina; label: string; icon: React.ReactNode; devOnly?: boolean }[] = [
   { id: 'lancamento',       label: 'Lançar Tanques',      icon: <ClipboardList className="w-4 h-4" /> },
-  { id: 'relatorios_stock', label: 'Relatórios de Stock',  icon: <BarChart2 className="w-4 h-4" />, devOnly: true },
+  { id: 'relatorios_stock', label: 'Relatórios',  icon: <BarChart2 className="w-4 h-4" />, devOnly: true },
 ]
 
 const ITENS: { id: Pagina; label: string; emoji: string; icon: React.ReactNode; accordion?: boolean; devOnly?: boolean }[] = [
   { id: 'dashboard',      label: 'Início',           emoji: '◈',  icon: <LayoutDashboard className="w-4 h-4" />, devOnly: true },
   { id: 'lancamento',     label: 'Abastecimentos',   emoji: '⛽', icon: <Fuel className="w-4 h-4" />, accordion: true },
   { id: 'gestao_tanques', label: 'Gestão de Tanques',emoji: '🛢', icon: <Database className="w-4 h-4" />, devOnly: true },
-  { id: 'historico',      label: 'Histórico',        emoji: '◎',  icon: <History className="w-4 h-4" /> },
+  { id: 'nota',           label: 'Nota',             emoji: '📄', icon: <FileText className="w-4 h-4" /> },
+  { id: 'config',         label: 'Config',           emoji: '⚙️', icon: <Settings className="w-4 h-4" />, devOnly: true },
 ]
 
 export function Sidebar() {

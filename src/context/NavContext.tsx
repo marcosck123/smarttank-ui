@@ -6,7 +6,8 @@ export type Pagina =
   | 'lancamento'
   | 'relatorios_stock'
   | 'gestao_tanques'
-  | 'historico'
+  | 'nota'
+  | 'config'
 
 interface NavContextValue {
   paginaAtiva: Pagina

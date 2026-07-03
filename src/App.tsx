@@ -4,8 +4,9 @@ import { NavProvider, useNav } from '@/context/NavContext'
 import { LandingPage } from '@/components/auth/LandingPage'
 import { Sidebar } from '@/components/sidebar/Sidebar'
 import { FormularioLancamento } from '@/components/forms/FormularioLancamento'
-import { Historico } from '@/components/history/Historico'
+import { NotaPage } from '@/pages/NotaPage'
 import { GestaoTanques } from '@/pages/dev/GestaoTanques'
+import { ConfigPage } from '@/pages/dev/ConfigPage'
 import { Dashboard } from '@/pages/dev/Dashboard'
 import { RelatoriosStock } from '@/pages/dev/RelatoriosStock'
 import { useAppStore } from '@/store/useAppStore'
@@ -41,11 +42,13 @@ function PainelInterno() {
               {paginaAtiva === 'lancamento'      && <FormularioLancamento operador={usuario?.nome ?? ''} onSalvar={salvarMedicao} statusSync={statusSync} />}
               {paginaAtiva === 'relatorios_stock'&& <RelatoriosStock historico={historico} />}
               {paginaAtiva === 'gestao_tanques'  && <GestaoTanques />}
-              {paginaAtiva === 'historico'       && (
-                <Historico
+              {paginaAtiva === 'config'          && <ConfigPage />}
+              {paginaAtiva === 'nota'            && (
+                <NotaPage
+                  operador={usuario?.nome ?? ''}
                   historico={historico}
-                  carregando={statusSync === 'carregando'}
-                  onVisualizar={() => {}}
+                  statusSync={statusSync}
+                  onSalvar={salvarMedicao}
                   onExcluir={excluirMedicao}
                   onRecarregar={recarregarHistorico}
                 />
