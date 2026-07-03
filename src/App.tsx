@@ -6,6 +6,7 @@ import { Sidebar } from '@/components/sidebar/Sidebar'
 import { FormularioLancamento } from '@/components/forms/FormularioLancamento'
 import { NotaPage } from '@/pages/NotaPage'
 import { GestaoTanques } from '@/pages/dev/GestaoTanques'
+import { ConfigPage } from '@/pages/dev/ConfigPage'
 import { Dashboard } from '@/pages/dev/Dashboard'
 import { RelatoriosStock } from '@/pages/dev/RelatoriosStock'
 import { useAppStore } from '@/store/useAppStore'
@@ -41,6 +42,7 @@ function PainelInterno() {
               {paginaAtiva === 'lancamento'      && <FormularioLancamento operador={usuario?.nome ?? ''} onSalvar={salvarMedicao} statusSync={statusSync} />}
               {paginaAtiva === 'relatorios_stock'&& <RelatoriosStock historico={historico} />}
               {paginaAtiva === 'gestao_tanques'  && <GestaoTanques />}
+              {paginaAtiva === 'config'          && <ConfigPage />}
               {paginaAtiva === 'nota'            && (
                 <NotaPage
                   operador={usuario?.nome ?? ''}

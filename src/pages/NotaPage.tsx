@@ -9,6 +9,7 @@ import { NotaWizard } from '@/components/nota/NotaWizard'
 import { ModalPreview } from '@/components/modals/ModalPreview'
 import { ModalConfirmacao } from '@/components/modals/ModalConfirmacao'
 import { gerarPlanilha } from '@/lib/gerarPlanilha'
+import { registrarAcesso } from '@/lib/supabase/usuariosService'
 import type { Medicao } from '@/types'
 import type { StatusSync } from '@/store/useAppStore'
 
@@ -26,7 +27,7 @@ function gerarId() {
 }
 
 export function NotaPage({ operador, historico, statusSync, onSalvar, onExcluir, onRecarregar }: Props) {
-  const { isDev } = useAuth()
+  const { isDev, usuario } = useAuth()
   const wizard = useNotaWizard()
 
   const [wizardAberto, setWizardAberto] = useState(false)
@@ -66,6 +67,7 @@ export function NotaPage({ operador, historico, statusSync, onSalvar, onExcluir,
     try {
       await onSalvar(preview)
       await gerarPlanilha(preview)
+      void registrarAcesso(preview.operador, usuario?.perfil ?? 'OPERADOR', 'emissao_nota')
       setConfirming(false)
       setPreview(null)
       setWizardAberto(false)

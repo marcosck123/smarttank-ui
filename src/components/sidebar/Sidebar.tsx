@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Fuel, ClipboardList, FileText, LayoutDashboard,
-  Database, BarChart2, ChevronDown, LogOut, Zap
+  Database, BarChart2, ChevronDown, LogOut, Zap, Settings
 } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
 import type { Pagina } from '@/context/NavContext'
@@ -18,6 +18,7 @@ const ITENS: { id: Pagina; label: string; emoji: string; icon: React.ReactNode; 
   { id: 'lancamento',     label: 'Abastecimentos',   emoji: '⛽', icon: <Fuel className="w-4 h-4" />, accordion: true },
   { id: 'gestao_tanques', label: 'Gestão de Tanques',emoji: '🛢', icon: <Database className="w-4 h-4" />, devOnly: true },
   { id: 'nota',           label: 'Nota',             emoji: '📄', icon: <FileText className="w-4 h-4" /> },
+  { id: 'config',         label: 'Config',           emoji: '⚙️', icon: <Settings className="w-4 h-4" />, devOnly: true },
 ]
 
 export function Sidebar() {

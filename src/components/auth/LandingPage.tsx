@@ -1,7 +1,9 @@
 import { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Eye, EyeOff, ArrowRight, Loader2 } from 'lucide-react'
+import { Eye, EyeOff, ArrowRight, Loader2, Wand2 } from 'lucide-react'
 import { useAuth, DEV_TRIGGER_NAME, DEV_PASSWORD } from '@/context/AuthContext'
+import { validarNome, autocorrigirNome } from '@/lib/nome/validarNome'
+import { nomesConhecidos } from '@/lib/supabase/usuariosService'
 
 type Fase = 'nome' | 'senha_dev' | 'entrando'
 
@@ -12,6 +14,9 @@ export function LandingPage() {
   const [senha, setSenha]         = useState('')
   const [senhaVisivel, setSenhaVisivel] = useState(false)
   const [erroSenha, setErroSenha] = useState(false)
+  const [erroNome, setErroNome]   = useState<string | null>(null)
+  const [nomeFinal, setNomeFinal] = useState('')
+  const [corrigido, setCorrigido] = useState(false)
   const senhaRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -24,13 +29,28 @@ export function LandingPage() {
   function handleNome(e: React.FormEvent) {
     e.preventDefault()
     const n = nome.trim()
-    if (n.length < 2) return
+
+    // Gatilho DEV — não passa por validação de nome comum
     if (n.toLowerCase().replace(/\s/g, '') === DEV_TRIGGER_NAME) {
+      setErroNome(null)
       setFase('senha_dev')
-    } else {
-      setFase('entrando')
-      setTimeout(() => entrar(n, 'OPERADOR'), 650)
+      return
     }
+
+    // 1) Bloqueia nome-lixo
+    const val = validarNome(n)
+    if (!val.valido) {
+      setErroNome(val.motivo ?? 'Nome inválido.')
+      return
+    }
+
+    // 2) Autocorrige contra os nomes já conhecidos (ex: "lucsa" → "Lucas")
+    const { nome: final, corrigido: foiCorrigido } = autocorrigirNome(n, nomesConhecidos())
+    setErroNome(null)
+    setNomeFinal(final)
+    setCorrigido(foiCorrigido)
+    setFase('entrando')
+    setTimeout(() => entrar(final, 'OPERADOR'), foiCorrigido ? 1100 : 650)
   }
 
   function handleSenha(e: React.FormEvent) {
@@ -103,10 +123,20 @@ export function LandingPage() {
                       Informe seu nome para registrar o turno.
                     </p>
                     <input
-                      type="text" value={nome} onChange={e => setNome(e.target.value)}
+                      type="text" value={nome}
+                      onChange={e => { setNome(e.target.value); if (erroNome) setErroNome(null) }}
                       placeholder="Nome completo" autoFocus
-                      className="input-warm"
+                      className={`input-warm ${erroNome ? 'border-red-300 bg-red-50 focus:ring-red-100 focus:border-red-400' : ''}`}
                     />
+                    <AnimatePresence>
+                      {erroNome && (
+                        <motion.p initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }}
+                          exit={{ opacity: 0, height: 0 }} transition={{ duration: 0.16 }}
+                          className="mt-1.5 text-xs text-red-500">
+                          {erroNome}
+                        </motion.p>
+                      )}
+                    </AnimatePresence>
                   </div>
                   <button type="submit" disabled={nome.trim().length < 2} className="btn-primary w-full">
                     Entrar <ArrowRight className="w-3.5 h-3.5" />
@@ -179,8 +209,20 @@ export function LandingPage() {
               {fase === 'entrando' && (
                 <motion.div key="entrando" initial={{ opacity: 0 }} animate={{ opacity: 1 }}
                   className="flex flex-col items-center py-8 gap-3">
+                  {corrigido && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
+                      className="flex items-center gap-1.5 text-xs text-brown-500 bg-brown-50
+                                 border border-brown-100 rounded-full px-3 py-1"
+                    >
+                      <Wand2 className="w-3 h-3 text-amber-600" />
+                      Corrigido para <strong className="text-brown-800">{nomeFinal}</strong>
+                    </motion.div>
+                  )}
                   <Loader2 className="w-6 h-6 text-brown-400 animate-spin" />
-                  <p className="text-sm text-brown-400">Carregando painel…</p>
+                  <p className="text-sm text-brown-400">
+                    {corrigido ? `Entrando como ${nomeFinal}…` : 'Carregando painel…'}
+                  </p>
                 </motion.div>
               )}
 

@@ -80,3 +80,43 @@ create policy "Atualização pública de overrides"
   on public.arqueacao_overrides for update using (true);
 create policy "Exclusão pública de overrides"
   on public.arqueacao_overrides for delete using (true);
+
+-- ── Usuários: registro de operadores + permissões ─────────────────────────
+create table if not exists public.usuarios (
+  id            text        primary key,
+  nome          text        not null,
+  perfil        text        not null default 'OPERADOR',
+  permissoes    text[]      not null default '{}',
+  criado_em     timestamptz not null default now(),
+  ultimo_acesso timestamptz not null default now(),
+  total_notas   integer     not null default 0
+);
+
+alter table public.usuarios enable row level security;
+
+create policy "Leitura pública de usuários"
+  on public.usuarios for select using (true);
+create policy "Inserção pública de usuários"
+  on public.usuarios for insert with check (true);
+create policy "Atualização pública de usuários"
+  on public.usuarios for update using (true);
+create policy "Exclusão pública de usuários"
+  on public.usuarios for delete using (true);
+
+-- ── Acessos: log simples de entradas e emissões ───────────────────────────
+create table if not exists public.acessos (
+  id        text        primary key,
+  nome      text        not null,
+  perfil    text        not null,
+  acao      text        not null,          -- 'login' | 'emissao_nota'
+  data_hora timestamptz not null default now()
+);
+
+create index if not exists acessos_data_hora_idx on public.acessos (data_hora desc);
+
+alter table public.acessos enable row level security;
+
+create policy "Leitura pública de acessos"
+  on public.acessos for select using (true);
+create policy "Inserção pública de acessos"
+  on public.acessos for insert with check (true);
