@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
-  Fuel, ClipboardList, History, LayoutDashboard,
+  Fuel, ClipboardList, FileText, LayoutDashboard,
   Database, BarChart2, ChevronDown, LogOut, Zap
 } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
@@ -17,7 +17,7 @@ const ITENS: { id: Pagina; label: string; emoji: string; icon: React.ReactNode; 
   { id: 'dashboard',      label: 'Início',           emoji: '◈',  icon: <LayoutDashboard className="w-4 h-4" />, devOnly: true },
   { id: 'lancamento',     label: 'Abastecimentos',   emoji: '⛽', icon: <Fuel className="w-4 h-4" />, accordion: true },
   { id: 'gestao_tanques', label: 'Gestão de Tanques',emoji: '🛢', icon: <Database className="w-4 h-4" />, devOnly: true },
-  { id: 'historico',      label: 'Histórico',        emoji: '◎',  icon: <History className="w-4 h-4" /> },
+  { id: 'nota',           label: 'Nota',             emoji: '📄', icon: <FileText className="w-4 h-4" /> },
 ]
 
 export function Sidebar() {
