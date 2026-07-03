@@ -10,7 +10,7 @@ import { useNav } from '@/context/NavContext'
 
 const SUBITENS: { id: Pagina; label: string; icon: React.ReactNode; devOnly?: boolean }[] = [
   { id: 'lancamento',       label: 'Lançar Tanques',      icon: <ClipboardList className="w-4 h-4" /> },
-  { id: 'relatorios_stock', label: 'Relatórios de Stock',  icon: <BarChart2 className="w-4 h-4" />, devOnly: true },
+  { id: 'relatorios_stock', label: 'Relatórios',  icon: <BarChart2 className="w-4 h-4" />, devOnly: true },
 ]
 
 const ITENS: { id: Pagina; label: string; emoji: string; icon: React.ReactNode; accordion?: boolean; devOnly?: boolean }[] = [

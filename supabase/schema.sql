@@ -120,3 +120,24 @@ create policy "Leitura pública de acessos"
   on public.acessos for select using (true);
 create policy "Inserção pública de acessos"
   on public.acessos for insert with check (true);
+
+-- ── Descargas: recebimentos detectados pela boia do TLS ───────────────────
+create table if not exists public.descargas (
+  id            text        primary key,
+  tanque_id     smallint    not null,
+  nome          text        not null,
+  tipo          text        not null,
+  volume_antes  numeric(10,2) not null,
+  volume_depois numeric(10,2) not null,
+  quantidade    numeric(10,2) not null,
+  data_hora     timestamptz not null default now()
+);
+
+create index if not exists descargas_data_hora_idx on public.descargas (data_hora desc);
+
+alter table public.descargas enable row level security;
+
+create policy "Leitura pública de descargas"
+  on public.descargas for select using (true);
+create policy "Inserção pública de descargas"
+  on public.descargas for insert with check (true);
