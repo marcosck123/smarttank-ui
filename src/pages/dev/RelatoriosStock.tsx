@@ -5,9 +5,9 @@ import {
 } from 'lucide-react'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { COR_COMBUSTIVEL } from '@/config/tanquesConfig'
+import { corCombustivel } from '@/config/tanquesConfig'
 import { formatarVolume } from '@/lib/calcVolume'
-import { useTLS } from '@/hooks/useTLS'
+import { useTanques } from '@/hooks/useTanques'
 import {
   carregarDescargas, registrarSnapshot, simularDescarga,
 } from '@/lib/tls/descargaService'
@@ -17,7 +17,7 @@ import type { Medicao } from '@/types'
 interface Props { historico: Medicao[] }
 
 export function RelatoriosStock(_: Props) {
-  const { leituras } = useTLS(8000)
+  const { leituras } = useTanques()
   const [descargas, setDescargas] = useState<Descarga[]>([])
   const [carregando, setCarregando] = useState(true)
   const [simulando, setSimulando] = useState(false)
@@ -30,18 +30,21 @@ export function RelatoriosStock(_: Props) {
 
   useEffect(() => { recarregar() }, [recarregar])
 
-  // A cada snapshot do TLS, detecta descargas reais (aumento de volume)
+  // A cada snapshot do TLS, detecta descargas reais (aumento de volume).
+  // Ignora tanques com leitura não confiável (sonda suspeita).
   useEffect(() => {
-    if (leituras.length === 0) return
-    registrarSnapshot(leituras).then(novas => {
+    const confiaveis = leituras.filter(l => l.confiavel)
+    if (confiaveis.length === 0) return
+    registrarSnapshot(confiaveis).then(novas => {
       if (novas.length > 0) setDescargas(prev => [...novas, ...prev])
     })
   }, [leituras])
 
   async function handleSimular() {
-    if (leituras.length === 0) return
+    const confiaveis = leituras.filter(l => l.confiavel)
+    if (confiaveis.length === 0) return
     setSimulando(true)
-    const alvo = leituras[Math.floor(Math.random() * leituras.length)]
+    const alvo = confiaveis[Math.floor(Math.random() * confiaveis.length)]
     const nova = await simularDescarga(alvo)
     setDescargas(prev => [nova, ...prev])
     setSimulando(false)
@@ -121,7 +124,7 @@ export function RelatoriosStock(_: Props) {
             </thead>
             <tbody>
               {descargas.map((d, i) => {
-                const cor = COR_COMBUSTIVEL[d.tipo]
+                const cor = corCombustivel(d.tipo)
                 return (
                   <motion.tr
                     key={d.id}
