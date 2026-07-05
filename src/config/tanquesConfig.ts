@@ -110,3 +110,17 @@ export const COR_COMBUSTIVEL: Record<TipoCombustivel, {
   'Diesel S10':         { badge: 'bg-sky-50 text-sky-700 ring-sky-200',            grupo: 'border-sky-200 bg-sky-50/60',        barra: 'bg-sky-500',     dot: 'bg-sky-500',     text: 'text-blue-400',    border: 'border-blue-400/30',    bg: 'bg-blue-400/5',    bar: 'bg-blue-400' },
   'Diesel S500':        { badge: 'bg-violet-50 text-violet-700 ring-violet-200',    grupo: 'border-violet-200 bg-violet-50/60',  barra: 'bg-violet-500',  dot: 'bg-violet-500',  text: 'text-purple-400',  border: 'border-purple-400/30',  bg: 'bg-purple-400/5',  bar: 'bg-purple-400' },
 }
+
+/** Paleta neutra para combustíveis fora do mapa (ex.: label vindo do bridge). */
+export const COR_NEUTRA = {
+  badge: 'bg-brown-100 text-brown-600 ring-brown-200',
+  grupo: 'border-brown-200 bg-brown-50/60',
+  barra: 'bg-brown-400',
+  dot: 'bg-brown-400',
+  text: 'text-brown-500', border: 'border-brown-200', bg: 'bg-brown-50', bar: 'bg-brown-400',
+}
+
+/** Acessor seguro de cor por tipo/label de combustível (aceita string livre). */
+export function corCombustivel(tipo: string) {
+  return (COR_COMBUSTIVEL as Record<string, typeof COR_NEUTRA>)[tipo] ?? COR_NEUTRA
+}

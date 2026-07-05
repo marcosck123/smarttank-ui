@@ -12,7 +12,6 @@
 
 import { supabase } from '@/lib/supabase/client'
 import type { LeituraTLS } from './tlsService'
-import type { TipoCombustivel } from '@/config/tanquesConfig'
 
 /** Aumento mínimo de volume (L) para considerar uma descarga. */
 const LIMIAR_DESCARGA_L = 2000
@@ -24,7 +23,7 @@ export interface Descarga {
   id: string
   tanqueId: number
   nome: string
-  tipo: TipoCombustivel
+  tipo: string
   volumeAntes: number
   volumeDepois: number
   quantidade: number     // arredondada para 100 L
@@ -64,7 +63,7 @@ function descargaParaRow(d: Descarga): DescargaRow {
 }
 function rowParaDescarga(r: DescargaRow): Descarga {
   return {
-    id: r.id, tanqueId: r.tanque_id, nome: r.nome, tipo: r.tipo as TipoCombustivel,
+    id: r.id, tanqueId: r.tanque_id, nome: r.nome, tipo: r.tipo,
     volumeAntes: Number(r.volume_antes), volumeDepois: Number(r.volume_depois),
     quantidade: Number(r.quantidade), dataHora: r.data_hora,
   }
