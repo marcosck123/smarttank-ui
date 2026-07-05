@@ -3,7 +3,6 @@ import { AuthProvider, useAuth } from '@/context/AuthContext'
 import { NavProvider, useNav } from '@/context/NavContext'
 import { LandingPage } from '@/components/auth/LandingPage'
 import { Sidebar } from '@/components/sidebar/Sidebar'
-import { FormularioLancamento } from '@/components/forms/FormularioLancamento'
 import { NotaPage } from '@/pages/NotaPage'
 import { GestaoTanques } from '@/pages/dev/GestaoTanques'
 import { ConfigPage } from '@/pages/dev/ConfigPage'
@@ -39,7 +38,6 @@ function PainelInterno() {
               className="h-full p-6 lg:p-8"
             >
               {paginaAtiva === 'dashboard'       && <Dashboard historico={historico} />}
-              {paginaAtiva === 'lancamento'      && <FormularioLancamento operador={usuario?.nome ?? ''} onSalvar={salvarMedicao} statusSync={statusSync} />}
               {paginaAtiva === 'relatorios_stock'&& <RelatoriosStock historico={historico} />}
               {paginaAtiva === 'gestao_tanques'  && <GestaoTanques />}
               {paginaAtiva === 'config'          && <ConfigPage />}

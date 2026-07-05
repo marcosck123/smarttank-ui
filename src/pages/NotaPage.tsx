@@ -122,7 +122,11 @@ export function NotaPage({ operador, historico, statusSync, onSalvar, onExcluir,
           <p className="text-sm mt-1">Clique em “Nova Nota” para começar a aferição.</p>
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-xl border border-brown-200">
+        <div className="space-y-2.5">
+          <h3 className="text-xs font-semibold text-brown-400 uppercase tracking-wider">
+            Histórico de notas emitidas
+          </h3>
+          <div className="overflow-x-auto rounded-xl border border-brown-200">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-brown-200 bg-brown-50">
@@ -170,6 +174,7 @@ export function NotaPage({ operador, historico, statusSync, onSalvar, onExcluir,
               ))}
             </tbody>
           </table>
+          </div>
         </div>
       )}
 
