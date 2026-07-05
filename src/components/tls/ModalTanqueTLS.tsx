@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { X, Droplets, Thermometer, Gauge, Waves, ArrowDownToLine, Clock, ShieldAlert } from 'lucide-react'
 import { format } from 'date-fns'
@@ -14,6 +15,12 @@ interface Props {
 export function ModalTanqueTLS({ leitura, onFechar }: Props) {
   const cor = corCombustivel(leitura.tipo)
   const confiavel = leitura.confiavel
+
+  useEffect(() => {
+    const h = (e: KeyboardEvent) => { if (e.key === 'Escape') onFechar() }
+    window.addEventListener('keydown', h)
+    return () => window.removeEventListener('keydown', h)
+  }, [onFechar])
 
   const items = [
     { icon: <Gauge className="w-4 h-4" />,          label: 'Nível de produto', valor: `${leitura.alturaProdutoCm.toFixed(1)} cm` },

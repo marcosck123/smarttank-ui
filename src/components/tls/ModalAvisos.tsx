@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { X, AlertOctagon, AlertTriangle, Info, ShieldCheck } from 'lucide-react'
 import { format } from 'date-fns'
@@ -32,6 +33,12 @@ const ESTILO: Record<NivelAviso, { icon: React.ReactNode; card: string; badge: s
 
 export function ModalAvisos({ avisos, onFechar }: Props) {
   const criticos = avisos.filter(a => a.nivel === 'critico').length
+
+  useEffect(() => {
+    const h = (e: KeyboardEvent) => { if (e.key === 'Escape') onFechar() }
+    window.addEventListener('keydown', h)
+    return () => window.removeEventListener('keydown', h)
+  }, [onFechar])
 
   return (
     <motion.div
