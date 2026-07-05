@@ -1,197 +1,176 @@
-# SmartTank Bridge
+# SmartTank
 
-Serviço local que conecta um medidor de tanques **Veeder-Root TLS-450 PLUS** ao app **SmartTank**, expondo os dados de inventário via REST + WebSocket na rede do posto.
+Sistema de **medição e automação de tanques de combustível** de um posto. Nasceu para a medição noturna (turno 00:00) e evoluiu para monitoramento em tempo real via medidor **Veeder-Root TLS-450 PLUS**.
 
-**Status: validado em produção** — leituras conferidas campo a campo contra a tela do console e o relatório impresso do equipamento (9 tanques, posto real).
+O projeto tem **duas partes** que trabalham juntas:
+
+| Parte | O que é | Onde roda |
+|---|---|---|
+| **SmartTank** (app) | Interface web (React) para aferição, emissão de notas, dashboard ao vivo e administração | Navegador — Vercel ou LAN do posto |
+| **SmartTank Bridge** (serviço) | Ponte local que lê o TLS-450 e expõe os dados via REST + WebSocket | PC do posto (Node/Docker), na mesma rede do medidor |
 
 ```
-┌──────────────┐   TCP :10001    ┌────────────────┐   REST :3050    ┌────────────┐
-│ TLS-450 PLUS │ ◄────────────── │     Bridge     │ ──────────────► │ SmartTank  │
-│ (Veeder-Root)│  protocolo VR   │  poll + cache  │   WS (push)     │  (web/app) │
-└──────────────┘  1 conexão      └────────────────┘                 └────────────┘
-                  persistente
+┌──────────────┐  TCP :10001   ┌────────────────┐  REST/WS :3050  ┌──────────────┐
+│ TLS-450 PLUS │ ◄──────────── │ SmartTank      │ ──────────────► │ SmartTank    │
+│ (Veeder-Root)│  protocolo VR │ Bridge         │  push tempo real│ (app web)    │
+│  9–10 tanques│  1 conexão    │ poll 20s+cache │                 │              │
+└──────────────┘  persistente  └────────────────┘                 └──────────────┘
+       hardware                    serviço local                     front-end
 ```
 
-## Como funciona
+> Sem o Bridge configurado, o app roda em **modo demonstração (mock)** com dados simulados — útil para desenvolvimento e testes. Com o Bridge, consome os dados reais do medidor.
 
-- Mantém **uma única conexão persistente** com o TLS-450 (o console aceita 1 cliente por porta) e enfileira comandos — nunca há comandos sobrepostos no equipamento.
-- Faz **polling** do inventário (`i20100`, protocolo serial Veeder-Root) a cada 20s e guarda em **cache em memória**. O SmartTank nunca fala com o equipamento — só com o cache.
-- Expõe REST para consulta e WebSocket para push em tempo real.
-- Reconecta sozinho com backoff exponencial (até 60s) se a rede ou o equipamento caírem.
-- Marca o dado como **stale** se ficar 3× o intervalo sem leitura boa — o front deve exibir aviso.
+---
 
-## Requisitos
+## 🖥️ SmartTank — o aplicativo (o que faz, em detalhe)
 
-- Windows, Linux ou macOS na **mesma rede** do TLS-450
-- Node.js 18+ (portátil serve — não precisa de admin) **ou** Docker
-- TLS-450 com porta *Comando de Série* TCP habilitada (padrão: 10001)
+App **React + TypeScript + Vite + Tailwind**, tema claro minimalista, com controle de acesso por perfil. Persistência **offline-first**: tudo é salvo primeiro no `localStorage` e sincronizado com o **Supabase** quando disponível — nunca há perda de dado se a rede cair.
 
-## Instalação
+### 1. Entrada e identificação
+- Tela de login pede o **nome do operador** para registrar o turno.
+- **Validação anti-lixo**: nomes sem sentido (`sadsad`, `asdf`, `aaaa`, sequências de teclado) são bloqueados.
+- **Autocorreção de nome** por distância de Damerau: se o operador digita `lucsa` e já existe `Lucas` cadastrado, o sistema corrige automaticamente (`maira`→`Maria`, `marcus`→`Marcos`).
+- **Easter egg de desenvolvedor**: digitar `marcos` revela um campo de senha; com a senha certa, entra como **DESENVOLVEDOR** (acesso total). Qualquer outro nome entra como **OPERADOR**.
 
-### Opção A — Node nativo (sem admin, recomendado para PC de PDV)
+### 2. Controle de acesso (RBAC)
+| Recurso | OPERADOR | DESENVOLVEDOR |
+|---|---|---|
+| Emitir Nota de aferição | ✅ | ✅ |
+| Ver histórico de notas | ✅ | ✅ |
+| Editar / excluir nota | ❌ | ✅ |
+| Dashboard ao vivo (TLS) | ❌ | ✅ |
+| Relatórios de descarga | ❌ | ✅ |
+| Gestão de Tanques / arqueação | ❌ | ✅ |
+| Config (usuários, acessos) | ❌ | ✅ |
 
-```powershell
-# Node portátil (se a máquina não tem Node)
-curl.exe -Lo "$env:TEMP\node.zip" "https://nodejs.org/dist/v22.14.0/node-v22.14.0-win-x64.zip"
-Expand-Archive "$env:TEMP\node.zip" -DestinationPath "$env:USERPROFILE\node" -Force
-[Environment]::SetEnvironmentVariable("Path", [Environment]::GetEnvironmentVariable("Path","User") + ";$env:USERPROFILE\node\node-v22.14.0-win-x64", "User")
-$env:Path += ";$env:USERPROFILE\node\node-v22.14.0-win-x64"
+### 3. Nota de Aferição (fluxo principal do operador)
+- **Assistente passo-a-passo**: preenche tanque 1 → 10, um de cada vez, com barra de progresso e navegação (Anterior/Próximo, Enter avança).
+- Ao digitar a **altura (cm)**, o volume vem da **tabela de arqueação** (lookup fixo, não fórmula) — é o valor oficial que vai para a planilha.
+- **Prévia encadeada**: revisão dos dados (com gráfico de níveis para o Dev) → confirmação → gera automaticamente a **planilha `.xlsx` formatada para impressão A4** e salva a nota.
+- **Histórico de notas emitidas**: lista todas as notas, permite baixar novamente a planilha, visualizar e (só Dev) editar/corrigir ou excluir.
 
-# Projeto
-cd C:\smarttank-bridge
-copy .env.example .env    # e edite (ver Configuração)
-npm install --omit=optional
-npm start
-```
+### 4. Arqueação (tabela altura → volume)
+- Cada tanque tem uma tabela de **255 alturas** mapeadas para volume em litros.
+- Valores padrão gerados pela fórmula do cilindro horizontal.
+- Na tela **Gestão de Tanques** (Dev), um modal permite **fixar manualmente** qualquer par altura↔volume (click-to-edit) — o override é persistido (Supabase/localStorage) e passa a valer para todo mundo. Inclui um **simulador com slider** para visualizar nível/volume.
 
-> Se o PowerShell reclamar de *execução de scripts desabilitada*:
-> `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned` (sem admin) — ou use `npm.cmd` no lugar de `npm`.
+### 5. Dashboard ao vivo (integração TLS-450)
+- Consome o **Bridge**: leitura inicial via REST + **tempo real via WebSocket**, com **fallback automático de polling** (30s) se o WS cair.
+- **Cards por tanque**: nível %, volume, altura de produto, temperatura, indicador de água.
+- **KPIs**: volume total, tanques monitorados, com alerta e alarmes críticos.
+- **Modal de detalhe** de cada tanque (nível, água, volume, espaço vazio/ullage, volume termo-compensado, temperatura).
+- **Modal de avisos** com alarmes por severidade (crítico / alerta / info).
+- **Regras de segurança do dado** (validadas em campo):
+  - `stale` → banner "dados desatualizados" com horário da última leitura;
+  - `waterHeight > 100 mm` → badge **"leitura não confiável"** (sonda com defeito) e o volume não é destacado como confiável;
+  - **503** do bridge → estado "aguardando primeira leitura" (não é erro);
+  - **indicador de conexão**: tempo real / periódico / offline / demonstração.
 
-### Opção B — Docker
+### 6. Relatórios de descarga (recebimento pela boia)
+- Detecta automaticamente uma **descarga** quando o volume de um tanque **sobe além de 2.000 L** entre leituras.
+- Registra qual tanque, combustível, volume antes → depois, quantidade recebida (arredondada) e data/hora.
+- Ignora tanques com leitura não confiável. Inclui botão **Simular** para demonstração sem o medidor real.
 
+### 7. Configurações (Dev)
+- **Usuários**: lista de quem já usou o app, com gestão de **permissões por toggle**, troca de perfil e remoção.
+- **Histórico de acessos**: log simples de logins e emissões de nota por operador.
+
+### Stack e persistência
+- **React 18 · Vite · TypeScript · Tailwind CSS v3 · Framer Motion** (animações) · **ExcelJS** (planilhas) · **Supabase JS** (nuvem).
+- **Offline-first**: `localStorage` como fonte primária + Supabase para sincronizar/compartilhar. Sem Supabase configurado, funciona 100% local.
+
+### Rodando o app
 ```bash
-docker compose up -d --build
-docker logs -f smarttank-bridge
+npm install
+cp .env.example .env      # opcional: Supabase e Bridge
+npm run dev               # desenvolvimento (http://localhost:5173)
+npm run build             # build de produção (dist/)
 ```
 
-O `docker-compose.yml` já traz `restart: unless-stopped` e rotação de log (10 MB × 3).
-
-## Configuração (`.env`)
-
-| Variável | Padrão | Descrição |
-|---|---|---|
-| `TLS_TRANSPORT` | `tcp` | `tcp` ou `serial` |
-| `TLS_HOST` | — | IP do TLS-450 (menu Configuração → Comunicação no console) |
-| `TLS_PORT` | `10001` | Porta *Comando de Série* TCP |
-| `TLS_SERIAL_PATH` | `COM3` | Porta COM (só modo serial) |
-| `TLS_BAUD_RATE` | `9600` | Baud rate 8N1 (só modo serial) |
-| `POLL_INTERVAL_MS` | `20000` | Intervalo entre leituras. **Mínimo 10000** |
-| `COMMAND_TIMEOUT_MS` | `8000` | Timeout de resposta de um comando |
-| `API_PORT` | `3050` | Porta da API REST/WS |
-| `BRIDGE_TOKEN` | — | Token da API. Gere: `node -e "console.log(require('crypto').randomBytes(24).toString('hex'))"` |
-| `CORS_ORIGINS` | `*` | Origens permitidas, separadas por vírgula. Restrinja em produção |
-| `PRODUCT_LABELS` | — | Mapa código→nome, varia por posto. Ex.: `1:Diesel S500,4:Gas. Aditivada,7:Diesel S10` |
-
-> **PRODUCT_LABELS**: o código de produto é um número que cada posto cadastra como quer no console. Descubra os nomes reais na tela *Descrição Geral → Tanque* ou no relatório impresso de inventário. Códigos não mapeados aparecem como `"Produto N"`.
-
-## API
-
-Autenticação: header `x-api-key: <BRIDGE_TOKEN>` (REST) ou query `?token=` (WS). `/health` é aberto.
-
-### `GET /health`
-
-```json
-{ "ok": true, "uptimeSec": 52, "connected": true, "stale": false,
-  "lastReadAt": "2026-07-03T06:40:09.491Z", "consecutiveFailures": 0, "lastError": null }
-```
-
-### `GET /tanques`
-
-`200` payload abaixo · `503` bridge de pé mas ainda sem leitura (trate como *loading*) · `401` token inválido.
-
-```json
-{
-  "deviceTimestamp": "2607030240",
-  "readAt": "2026-07-03T06:40:09.491Z",
-  "tanks": [
-    { "tank": 1, "productCode": 7, "productLabel": "Diesel S10", "statusBits": "0000",
-      "volume": 56726.88, "volumeTC": 56266.4, "ullage": 4557.74, "height": 2224.55,
-      "waterHeight": 0, "temperature": 30.02, "waterVolume": 0 }
-  ],
-  "status": { "connected": true, "stale": false, "lastReadAt": "…",
-              "consecutiveFailures": 0, "lastError": null }
-}
-```
-
-Unidades: volumes em **litros**, alturas em **mm**, temperatura em **°C**. `ullage` = espaço livre; capacidade total = `volume + ullage`; `volumeTC` = volume termo-compensado.
-
-### `GET /tanques/:id`
-
-Um tanque específico. `404` se não existir.
-
-### `WS /ws?token=…`
-
-Envia o estado atual ao conectar e push a cada leitura nova:
-
-```json
-{ "type": "inventory", "data": { …mesmo payload do GET /tanques… } }
-```
-
-## Regras de negócio para o consumidor
-
-| Sinal | Tratamento obrigatório no front |
+**Variáveis de ambiente** (`.env`, todas opcionais):
+| Variável | Para quê |
 |---|---|
-| `status.stale === true` | Aviso "dados desatualizados" + horário de `lastReadAt`. Nunca exibir como atual |
-| `waterHeight > 100` (mm) | Badge "leitura não confiável — possível sonda com defeito". Caso real: tanque com sonda defeituosa reportando ~19.750 L de "água" |
-| REST `503` | "Aguardando primeira leitura" — é boot, não erro |
-| WS caiu | Fazer fallback de polling REST e indicar modo degradado |
+| `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` | Persistência em nuvem. Sem elas, usa só `localStorage` |
+| `VITE_BRIDGE_URL` | URL do Bridge (ex.: `http://192.168.20.83:3050`). Sem ela, Dashboard roda em **mock** |
+| `VITE_BRIDGE_TOKEN` | Token da API do Bridge (`x-api-key`) |
 
-## Rodando 24/7
+> ⚠️ O token do Bridge fica visível no cliente — só use assim quando o app é servido/acessado **dentro da rede local do posto**. Para acesso externo, prefira um proxy server-side ou a arquitetura *push* (Bridge → Supabase → app).
 
-### Sem admin (watchdog + inicialização por logon)
+---
 
-`start-bridge.bat` na pasta do projeto:
+## 🌉 SmartTank Bridge — o serviço local (o que faz, em detalhe)
 
-```bat
-@echo off
-cd /d "%~dp0"
-:loop
-node src\index.js >> bridge.log 2>&1
-echo [watchdog] bridge caiu, reiniciando em 5s... >> bridge.log
-timeout /t 5 /nobreak > nul
-goto loop
+Serviço **Node (Fastify)** que roda no PC do posto e é o **único** que conversa com o medidor. Fica na pasta [`smarttank-bridge/`](./smarttank-bridge) — o **manual completo** (instalação, Docker, operação 24/7, troubleshooting de campo) está no [README do Bridge](./smarttank-bridge/README.md).
+
+### O que ele faz
+- Mantém **uma única conexão persistente** com o TLS-450 (o console aceita só 1 cliente por porta) e **enfileira comandos** — nunca envia comandos sobrepostos ao equipamento.
+- Faz **polling do inventário** (comando serial Veeder-Root `i20100`) a cada ~20s e guarda tudo num **cache em memória**. O app **nunca fala direto com o medidor** — só com esse cache.
+- Expõe **REST** (consulta) e **WebSocket** (push em tempo real a cada leitura nova).
+- **Reconecta sozinho** com backoff exponencial (até 60s) se a rede ou o equipamento caírem.
+- Marca o dado como **`stale`** se ficar 3× o intervalo sem leitura boa — sinal para o app avisar o usuário.
+- Suporta transporte **TCP** (porta 10001) ou **serial** (RS-232).
+
+### API resumida
+Autenticação: `x-api-key: <token>` (REST) ou `?token=` (WS). `/health` é aberto.
+
+| Rota | Descrição |
+|---|---|
+| `GET /health` | Saúde do serviço (uptime, conectado, stale, última leitura) |
+| `GET /tanques` | Inventário de todos os tanques. `503` = ainda sem leitura; `401` = token inválido |
+| `GET /tanques/:id` | Um tanque específico |
+| `WS /ws?token=…` | Estado atual ao conectar + push a cada nova leitura (`{ type: "inventory", data }`) |
+
+**Campos por tanque**: `volume`, `volumeTC` (termo-compensado), `ullage` (espaço livre), `height` e `waterHeight` (mm), `temperature` (°C), `productLabel`. Capacidade total = `volume + ullage`; ocupação = `volume / (volume + ullage)`.
+
+### Instalação rápida (resumo — ver [README do Bridge](./smarttank-bridge/README.md))
+```bash
+cd smarttank-bridge
+cp .env.example .env        # edite TLS_HOST, BRIDGE_TOKEN, CORS_ORIGINS...
+npm install --omit=optional
+npm start                   # sobe REST + WS na porta 3050
+```
+Também há instruções de **Docker** e de execução **24/7** (watchdog no Windows sem admin, NSSM, `restart: unless-stopped`).
+
+---
+
+## 🔌 Como as duas partes se conectam
+
+1. O **Bridge** roda no PC do posto e lê o TLS-450 continuamente.
+2. No app, definem-se `VITE_BRIDGE_URL` e `VITE_BRIDGE_TOKEN` apontando para o Bridge.
+3. O **Dashboard** busca o estado inicial (REST) e assina o **WebSocket** para atualizações em tempo real; se o WS cair, faz **polling**; se o Bridge não responder, mostra **offline**.
+4. Sem essas variáveis, o app usa o **mock** — nenhum componente muda, só a fonte de dados.
+
+> **CORS**: o Bridge precisa liberar a origem do app (`CORS_ORIGINS`) e o header `x-api-key`, senão o navegador bloqueia as chamadas REST (o WebSocket não sofre CORS).
+
+---
+
+## 📁 Estrutura do repositório
+
+```
+smarttank-ui/
+├── src/                      # aplicativo React (SmartTank)
+│   ├── components/           # UI: auth, sidebar, nota, modais, tls, ...
+│   ├── pages/                # Nota + páginas Dev (Dashboard, Relatórios, Gestão, Config)
+│   ├── hooks/                # useNotaWizard, useTanques, ...
+│   ├── lib/
+│   │   ├── tls/              # bridgeClient (REST+WS), tlsService, descargaService
+│   │   ├── arqueacao/        # tabela altura→volume + overrides
+│   │   ├── supabase/         # persistência (medições, usuários, acessos)
+│   │   └── nome/             # validação + autocorreção de nome
+│   └── config/               # tanquesConfig (tanques, cores, geometria)
+├── smarttank-bridge/         # serviço local do TLS-450 (Node/Fastify) — README próprio
+├── supabase/schema.sql       # tabelas: medicoes, leituras, arqueacao, usuarios, acessos, descargas
+└── README.md                 # este arquivo
 ```
 
-`start-bridge-oculto.vbs` (roda sem janela):
+## 🚀 Deploy
+- **App**: Vercel (build do Vite a partir da raiz). Configure as `VITE_*` no painel do Vercel.
+- **Bridge**: no PC do posto (Node ou Docker). Não vai para a Vercel — vive na LAN.
 
-```vbs
-CreateObject("Wscript.Shell").Run """" & CreateObject("Scripting.FileSystemObject").GetParentFolderName(WScript.ScriptFullName) & "\start-bridge.bat""", 0, False
-```
-
-Atalho do `.vbs` na pasta `shell:startup` (Win+R → `shell:startup`). Limitação: processo de usuário morre no logoff — mantenha o PC logado ou configure auto-login.
-
-### Com admin
-
-NSSM (`nssm install SmartTankBridge …`) ou Docker com `restart: unless-stopped` + Docker Desktop iniciando no logon.
-
-## Operação
-
-```powershell
-Get-Content bridge.log -Tail 30 -Wait                     # acompanhar log (modo nativo)
-docker logs -f smarttank-bridge                            # (modo Docker)
-curl.exe http://localhost:3050/health                      # saúde
-curl.exe -H "x-api-key: TOKEN" http://localhost:3050/tanques
-```
-
-## Troubleshooting (problemas reais de campo)
-
-| Sintoma | Causa | Solução |
-|---|---|---|
-| `ECONNREFUSED <ip>:10001` | IP errado no `.env` (ex.: exemplo não editado) | IP real: console → Configuração → Comunicação |
-| Scan da rede não acha o TLS | Timeout curto ou porta ocupada por outro cliente | Confirme IP no console; teste `Test-NetConnection <ip> -Port 10001` |
-| Porta conecta mas comando fica mudo | Não é o TLS (conversor/VM) **ou** código de segurança serial habilitado | Identifique pelo MAC (`00:50:83` = Gilbarco VR) e pela interface web do console |
-| `401` na API | Header sem dois-pontos (`x-api-key: token`) ou token divergente do `.env` | Confira `type .env \| findstr BRIDGE_TOKEN` |
-| `503` logo após subir | Primeira leitura ainda não aconteceu | Aguarde 1 ciclo de poll |
-| `[poller] Falha #1` no boot | Poller dispara antes do handshake TCP | Ruído conhecido e inofensivo |
-| `Empty reply from server` | curl disparado antes do server abrir | Aguarde ~5s após subir |
-| `npm.ps1 … execução de scripts desabilitada` | ExecutionPolicy do PowerShell | `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned` ou `npm.cmd` |
-| Reconexões TCP em ciclo no log | Outro software disputando a porta do TLS | Porta dedicada no console, ou modo conectar/ler/desconectar |
-| Água altíssima num tanque (`waterVolume` gigante) | Sonda com defeito — o console reporta isso mesmo | Chamado técnico Veeder-Root; front marca leitura não confiável |
-
-## Segurança
-
-- Token forte obrigatório (32+ chars aleatórios); rede de posto tem PDV, câmeras e wifi de terceiros.
-- `CORS_ORIGINS` restrito à origem do SmartTank em produção.
-- Não exponha a porta 3050 pra fora da rede local sem HTTPS + auth de verdade (para acesso externo, prefira a arquitetura *push*: bridge → Supabase → app).
-- O `.env` contém o token: mantenha o projeto fora de pastas públicas (Desktop compartilhado) e fora do Git (`.gitignore`).
-
-## Roadmap
-
-- [ ] Primeira leitura disparada no `connect` (elimina a falha falsa de boot)
-- [ ] Push das leituras para Supabase (histórico + acesso externo via app na Vercel)
-- [ ] Rotação de log embutida no modo nativo
-- [ ] Suporte a código de segurança serial do console
+## 🔒 Segurança (resumo)
+- Token do Bridge forte (32+ chars) e fora do Git (`.env` no `.gitignore`).
+- `CORS_ORIGINS` restrito à origem do app em produção.
+- Não expor a porta do Bridge para fora da rede local sem HTTPS + auth de verdade.
 
 ## Licença
-
 Uso interno.
