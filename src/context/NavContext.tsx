@@ -3,7 +3,6 @@ import { useAuth } from './AuthContext'
 
 export type Pagina =
   | 'dashboard'
-  | 'lancamento'
   | 'relatorios_stock'
   | 'gestao_tanques'
   | 'nota'
@@ -18,7 +17,7 @@ const NavContext = createContext<NavContextValue | null>(null)
 
 export function NavProvider({ children }: { children: ReactNode }) {
   const { isDev } = useAuth()
-  const [paginaAtiva, setPaginaAtiva] = useState<Pagina>(isDev ? 'dashboard' : 'lancamento')
+  const [paginaAtiva, setPaginaAtiva] = useState<Pagina>(isDev ? 'dashboard' : 'nota')
 
   const navegar = useCallback((pagina: Pagina) => setPaginaAtiva(pagina), [])
 
